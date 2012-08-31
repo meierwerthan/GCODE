@@ -10,7 +10,7 @@ function GCodeParser(handlers) {
 }
 
 GCodeParser.prototype.parseLine = function(text, info) {
-  text = text.replace(/;.*$/, '').trim(); // Remove comments
+  text = text.replace(/[;(].*$/, '').trim(); // Remove comments
   if (text) {
     var tokens = text.split(' ');
     if (tokens) {
