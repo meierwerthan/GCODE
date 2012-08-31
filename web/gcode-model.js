@@ -17,13 +17,15 @@ function createObjectFromGCode(gcode) {
  	function getLineGroup(line) {
  		if (layer == undefined)
  			newLayer(line);
+    line.extruding = true;
  		var speed = Math.round(line.e / 1000);
  		var grouptype = (line.extruding ? 10000 : 0) + speed;
  		var color = new THREE.Color(line.extruding ? 0xffffff : 0x0000ff);
  		if (layer.type[grouptype] == undefined) {
  			layer.type[grouptype] = {
  				type: grouptype,
- 				feed: line.e,
+        // feed: line.e,
+        feed: 1.36645,
  				extruding: line.extruding,
  				color: color,
  				segmentCount: 0,
