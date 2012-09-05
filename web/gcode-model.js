@@ -44,13 +44,12 @@ function createObjectFromGCode(gcode) {
 		var geometry = group.geometry;
 
 		group.segmentCount++;
-        geometry.vertices.push(new THREE.Vertex(
-            new THREE.Vector3(p1.x, p1.y, p1.z)));
-        geometry.vertices.push(new THREE.Vertex(
-            new THREE.Vector3(p2.x, p2.y, p2.z)));
-        geometry.colors.push(group.color);
-        geometry.colors.push(group.color);
-        if (p2.extruding) {
+    geometry.vertices.push(new THREE.Vector3(p1.x, p1.y, p1.z));
+    geometry.vertices.push(new THREE.Vector3(p2.x, p2.y, p2.z));
+    geometry.colors.push(group.color);
+    geometry.colors.push(group.color);
+
+    if (p2.extruding) {
 			bbbox.min.x = Math.min(bbbox.min.x, p2.x);
 			bbbox.min.y = Math.min(bbbox.min.y, p2.y);
 			bbbox.min.z = Math.min(bbbox.min.z, p2.z);
