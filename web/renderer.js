@@ -34,7 +34,6 @@ function createScene(element) {
   //camera.lookAt(scene.position);
   scene.add(camera);
   controls = new THREE.TrackballControls(camera);
-  controls.noPan = true;
   controls.dynamicDampingFactor = 0.15;
 
   // Action!
