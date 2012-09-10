@@ -6,65 +6,65 @@ function createObjectFromGCode(gcode) {
 
   var lastLine = {x:0, y:0, z:0, e:0, f:0, extruding:false};
 
- 	var layers = [];
- 	var layer = undefined;
- 	var bbbox = { min: { x:100000,y:100000,z:100000 }, max: { x:-100000,y:-100000,z:-100000 } };
+  var layers = [];
+  var layer = undefined;
+  var bbbox = { min: { x:100000,y:100000,z:100000 }, max: { x:-100000,y:-100000,z:-100000 } };
 
- 	function newLayer(line) {
- 		layer = { type: {}, layer: layers.count(), z: line.z, };
- 		layers.push(layer);
- 	}
- 	function getLineGroup(line) {
- 		if (layer == undefined)
- 			newLayer(line);
+  function newLayer(line) {
+    layer = { type: {}, layer: layers.count(), z: line.z, };
+    layers.push(layer);
+  }
+  function getLineGroup(line) {
+    if (layer == undefined)
+      newLayer(line);
     line.extruding = true;
- 		var speed = Math.round(line.e / 1000);
- 		var grouptype = (line.extruding ? 10000 : 0) + speed;
- 		var color = new THREE.Color(line.extruding ? 0xffffff : 0x0000ff);
- 		if (layer.type[grouptype] == undefined) {
- 			layer.type[grouptype] = {
- 				type: grouptype,
+    var speed = Math.round(line.e / 1000);
+    var grouptype = (line.extruding ? 10000 : 0) + speed;
+    var color = new THREE.Color(line.extruding ? 0xffffff : 0x0000ff);
+    if (layer.type[grouptype] == undefined) {
+      layer.type[grouptype] = {
+        type: grouptype,
         // feed: line.e,
         feed: 1.36645,
- 				extruding: line.extruding,
- 				color: color,
- 				segmentCount: 0,
- 				material: new THREE.LineBasicMaterial({
-					  opacity:line.extruding ? 0.5 : 0.4,
-					  transparent: true,
-					  linewidth: 1,
-					  vertexColors: THREE.FaceColors }),
-				geometry: new THREE.Geometry(),
-			}
-		}
-		return layer.type[grouptype];
- 	}
- 	function addSegment(p1, p2) {
-		var group = getLineGroup(p2);
-		var geometry = group.geometry;
+        extruding: line.extruding,
+        color: color,
+        segmentCount: 0,
+        material: new THREE.LineBasicMaterial({
+            opacity:line.extruding ? 0.5 : 0.4,
+            transparent: true,
+            linewidth: 1,
+            vertexColors: THREE.FaceColors }),
+        geometry: new THREE.Geometry(),
+      }
+    }
+    return layer.type[grouptype];
+  }
+  function addSegment(p1, p2) {
+    var group = getLineGroup(p2);
+    var geometry = group.geometry;
 
-		group.segmentCount++;
+    group.segmentCount++;
     geometry.vertices.push(new THREE.Vector3(p1.x, p1.y, p1.z));
     geometry.vertices.push(new THREE.Vector3(p2.x, p2.y, p2.z));
     geometry.colors.push(group.color);
     geometry.colors.push(group.color);
 
     if (p2.extruding) {
-			bbbox.min.x = Math.min(bbbox.min.x, p2.x);
-			bbbox.min.y = Math.min(bbbox.min.y, p2.y);
-			bbbox.min.z = Math.min(bbbox.min.z, p2.z);
-			bbbox.max.x = Math.max(bbbox.max.x, p2.x);
-			bbbox.max.y = Math.max(bbbox.max.y, p2.y);
-			bbbox.max.z = Math.max(bbbox.max.z, p2.z);
-		}
- 	}
-  	var relative = false;
-	function delta(v1, v2) {
-		return relative ? v2 : v2 - v1;
-	}
-	function absolute (v1, v2) {
-		return relative ? v1 + v2 : v2;
-	}
+      bbbox.min.x = Math.min(bbbox.min.x, p2.x);
+      bbbox.min.y = Math.min(bbbox.min.y, p2.y);
+      bbbox.min.z = Math.min(bbbox.min.z, p2.z);
+      bbbox.max.x = Math.max(bbbox.max.x, p2.x);
+      bbbox.max.y = Math.max(bbbox.max.y, p2.y);
+      bbbox.max.z = Math.max(bbbox.max.z, p2.z);
+    }
+  }
+    var relative = false;
+  function delta(v1, v2) {
+    return relative ? v2 : v2 - v1;
+  }
+  function absolute (v1, v2) {
+    return relative ? v1 + v2 : v2;
+  }
 
   var parser = new GCodeParser({
 
@@ -122,12 +122,12 @@ function createObjectFromGCode(gcode) {
       };
       /* layer change detection is or made by watching Z, it's made by
          watching when we extrude at a new Z position */
-		if (delta(lastLine.e, newLine.e) > 0) {
-			newLine.extruding = delta(lastLine.e, newLine.e) > 0;
-			if (layer == undefined || newLine.z != layer.z)
-				newLayer(newLine);
-		}
-		addSegment(lastLine, newLine);
+    if (delta(lastLine.e, newLine.e) > 0) {
+      newLine.extruding = delta(lastLine.e, newLine.e) > 0;
+      if (layer == undefined || newLine.z != layer.z)
+        newLayer(newLine);
+    }
+    addSegment(lastLine, newLine);
       lastLine = newLine;
     },
 
@@ -220,29 +220,29 @@ function createObjectFromGCode(gcode) {
 
   parser.parse(gcode);
 
-	console.log("Layer Count ", layers.count());
+  console.log("Layer Count ", layers.count());
 
   var object = new THREE.Object3D();
 
-	for (var lid in layers) {
-		var layer = layers[lid];
-//		console.log("Layer ", layer.layer);
-		for (var tid in layer.type) {
-			var type = layer.type[tid];
-//			console.log("Layer ", layer.layer, " type ", type.type, " seg ", type.segmentCount);
-		  object.add(new THREE.Line(type.geometry, type.material, THREE.LinePieces));
-		}
-	}
-	console.log("bbox ", bbbox);
+  for (var lid in layers) {
+    var layer = layers[lid];
+//    console.log("Layer ", layer.layer);
+    for (var tid in layer.type) {
+      var type = layer.type[tid];
+//      console.log("Layer ", layer.layer, " type ", type.type, " seg ", type.segmentCount);
+      object.add(new THREE.Line(type.geometry, type.material, THREE.LinePieces));
+    }
+  }
+  console.log("bbox ", bbbox);
 
   // Center
   var scale = 3; // TODO: Auto size
 
   var center = new THREE.Vector3(
-  		bbbox.min.x + ((bbbox.max.x - bbbox.min.x) / 2),
-  		bbbox.min.y + ((bbbox.max.y - bbbox.min.y) / 2),
-  		bbbox.min.z + ((bbbox.max.z - bbbox.min.z) / 2));
-	console.log("center ", center);
+      bbbox.min.x + ((bbbox.max.x - bbbox.min.x) / 2),
+      bbbox.min.y + ((bbbox.max.y - bbbox.min.y) / 2),
+      bbbox.min.z + ((bbbox.max.z - bbbox.min.z) / 2));
+  console.log("center ", center);
 
   object.position = center.multiplyScalar(-scale);
 
