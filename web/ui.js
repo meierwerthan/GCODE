@@ -1,11 +1,72 @@
-function error(msg) {
+function FileIO() { }
+
+FileIO.error = function(msg) {
   alert(msg);
 }
 
-function loadFile(path, callback /* function(contents) */) {
+FileIO.loadPath = function(path, callback) {
+  var self = this;
   $.get(path, null, callback, 'text')
-    .error(function() { error() });
+    .error(function() { self.error('Unable to load gcode.') });
 }
+
+FileIO.load = function(files, callback) {
+  if (files.length) {
+    var i = 0, l = files.length;
+    for ( ; i < l; i++) {
+      FileIO.load(files[i], callback);
+    }
+  }
+  else {
+    var reader = new FileReader();
+    reader.onload = function() {
+      callback(reader.result);
+    };
+    reader.readAsText(files);
+  }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+function GCodeImporter() { }
+
+GCodeImporter.importPath = function(path, callback) {
+  FileIO.loadPath(path, function(gcode) {
+    GCodeImporter.importText(gcode, callback);
+  });
+}
+
+GCodeImporter.importText = function(gcode, callback) {
+  var gcodeObj = createObjectFromGCode(gcode);
+
+  localStorage.removeItem(config.lastImportedKey);
+  try {
+    localStorage.setItem(config.lastImportedKey, gcode);
+  }
+  catch(e) {
+    // localstorage error - probably out of space
+  }
+
+  callback(gcodeObj);
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+// gcode_file = IO
+// gcode_model = new GCodeCollection();
+//
+// gcode_model = (new GcodeParser()).parse(gcode_file)
+// renderer = (new GcodeRenderer(webgl_context))
+
+var config = {
+  lastImportedKey: 'last-imported',
+  notFirstVisitKey: 'not-first-visit',
+  defaultFilePath: 'examples/octocat.gcode'
+}
+
+
+var scene = null,
+    object = null;
 
 function about() {
   $('#aboutModal').modal();
@@ -15,77 +76,65 @@ function openDialog() {
   $('#openModal').modal();
 }
 
-var scene = null;
-var object = null;
-
-function openGCodeFromPath(path) {
+function onGCodeLoaded(gcodeObj) {
   $('#openModal').modal('hide');
   if (object) {
     scene.remove(object);
   }
-  loadFile(path, function(gcode) {
-    object = createObjectFromGCode(gcode);
-    scene.add(object);
-    localStorage.setItem('last-loaded', path);
-    localStorage.removeItem('last-imported');
-  });
-}
 
-function openGCodeFromText(gcode) {
-  $('#openModal').modal('hide');
-  if (object) {
-    scene.remove(object);
-  }
-  object = createObjectFromGCode(gcode);
+  object = gcodeObj;
+
   scene.add(object);
-  localStorage.setItem('last-imported', gcode);
-  localStorage.removeItem('last-loaded');
 }
-
 
 $(function() {
 
   if (!Modernizr.webgl) {
-    alert('Sorry, you need a WebGL capable browser to use this.\n\nGet the latest Chrome or FireFox.');
+    alert("Sorry, you need a WebGL capable browser to use this.\n\nGet the latest Chrome or FireFox.");
     return;
   }
 
   if (!Modernizr.localstorage) {
-    alert("Man, your browser is ancient. I can't work with this. Please upgrade.");
+    alert("This app uses local storage to save settings, but your browser doesn't support it.\n\nGet the latest Chrome or FireFox.");
     return;
   }
 
   // Show 'About' dialog for first time visits.
-  if (!localStorage.getItem("not-first-visit")) {
-    localStorage.setItem("not-first-visit", true);
+  if (!localStorage.getItem(config.notFirstVisitKey)) {
+    localStorage.setItem(config.notFirstVisitKey, true);
     setTimeout(about, 500);
   }
 
+  $('.gcode_examples a').on('click', function(event) {
+    GCodeImporter.importPath($(this).attr('href'), onGCodeLoaded);
+    return false;
+  })
+
   // Drop files from desktop onto main page to import them.
   $('body').on('dragover', function(event) {
+
     event.stopPropagation();
     event.preventDefault();
-    event.originalEvent.dataTransfer.dropEffect = 'copy'
+    event.originalEvent.dataTransfer.dropEffect = 'copy';
+
   }).on('drop', function(event) {
+
     event.stopPropagation();
     event.preventDefault();
-    var files = event.originalEvent.dataTransfer.files;
-    if (files.length > 0) {
-      var reader = new FileReader();
-      reader.onload = function() {
-        openGCodeFromText(reader.result);
-      };
-      reader.readAsText(files[0]);
-    }
+
+    FileIO.load(event.originalEvent.dataTransfer.files, function(gcode) {
+      GCodeImporter.importText(gcode, onGCodeLoaded);
+    });
+
   });
 
-  scene = createScene($('#renderArea'));
-  var lastImported = localStorage.getItem('last-imported');
-  var lastLoaded = localStorage.getItem('last-loaded');
+  scene = createScene($('#renderArea')[0]);
+
+  var lastImported = localStorage.getItem(config.lastImportedKey);
   if (lastImported) {
-    openGCodeFromText(lastImported);
+    GCodeImporter.importText(lastImported, onGCodeLoaded);
   } else {
-    openGCodeFromPath(lastLoaded || 'examples/octocat.gcode');
+    GCodeImporter.importPath(config.defaultFilePath, onGCodeLoaded);
   }
 });
 
