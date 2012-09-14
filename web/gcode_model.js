@@ -1,3 +1,22 @@
+function GCodeModel() {
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function createObjectFromGCode(gcode) {
   // GCode descriptions come from:
   //    http://reprap.org/wiki/G-code
