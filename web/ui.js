@@ -124,7 +124,7 @@ function createObjectFromGCode(gcode) {
     return relative ? v1 + v2 : v2;
   }
 
-  var parser = new GCodeParser({
+  var parser = new OldGCodeParser({
 
     'F5.00': function(args) {
       // F: Sets feed rate
@@ -313,7 +313,7 @@ function onGCodeLoaded(gcode) {
 
   var gcodeObj = createObjectFromGCode(gcode);
 
-  // var gcodeModel = GCodeParser.parse(gcode);
+  // var gcodeModel = OldGCodeParser.parse(gcode);
 
   localStorage.removeItem(config.lastImportedKey);
   try {
