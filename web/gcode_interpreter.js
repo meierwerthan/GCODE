@@ -2,9 +2,52 @@
   Based on https://github.com/grbl/grbl/blob/edge/gcode.c
  */
 
-function GCodeInterpreter() {
-  this.model = new GCodeModel();
+var settings = {
+  default_feed_rate: undefined,
+  steps_per_mm: new Array(3),
+  default_seek_rate: undefined
 }
+
+var sys = {
+  opt_stop: undefined,
+  coord_select: undefined
+}
+
+// TODO: add more axes
+var X_AXIS = 0,
+    Y_AXIS = 1,
+    Z_AXIS = 2;
+
+function GCodeInterpreter() {
+  this.gc = new GCodeInterpreterState();
+}
+
+function GCodeInterpreterState() {
+  this.status_code;              // Parser status for current block
+  this.motion_mode;              // {G0, G1, G2, G3, G80}
+  this.inverse_feed_rate_mode;   // {G93, G94}
+  this.inches_mode = false;      // 0 = millimeter mode, 1 = inches mode {G20, G21}
+  this.absolute_mode = true;     // 0 = relative motion, 1 = absolute motion {G90, G91}
+  this.program_flow;             // {M0, M1, M2, M30}
+  this.spindle_direction;        // 1 = CW, -1 = CCW, 0 = Stop {M3, M4, M5}
+  this.feed_rate = settings.default_feed_rate; // Millimeters/second
+  this.seek_rate = settings.default_seek_rate; // Millimeters/second
+  this.position = new Array(3);  // Where the interpreter considers the tool to be at this point in the code
+  this.tool;
+  this.spindle_speed;            // RPM/100
+  this.plane_axis_0;
+  this.plane_axis_1;
+  this.plane_axis_2;             // The axes of the selected plane
+
+  this.selectPlane(X_AXIS, Y_AXIS, Z_AXIS);
+}
+
+GCodeInterpreterState.prototype.selectPlane = function(axis_0, axis_1, axis_2) {
+  this.plane_axis_0 = axis_0;
+  this.plane_axis_1 = axis_1;
+  this.plane_axis_2 = axis_2;
+}
+
 
 // Define modal group internal numbers for checking multiple command violations and tracking the
 // type of command that is called in the block. A modal group is a group of g-code commands that are
@@ -24,44 +67,42 @@ var MODAL_GROUP_NONE = 0,
     MODAL_GROUP_9 = 10,  // (not supported by grbl) [M48,M49] Enable/disable feed and speed override switches
     MODAL_GROUP_10 = 11, // (not supported by grbl) [G98,G99] Return mode in canned cycles
     MODAL_GROUP_12 = 12, // [G54,G55,G56,G57,G58,G59] Coordinate system selection ( [G59.1,G59.2,G59.3] not supported by grbl )
-    MODAL_GROUP_13 = 13  // (not supported by grbl) [G61,G61.1,G64] path control mode
+    MODAL_GROUP_13 = 13; // (not supported by grbl) [G61,G61.1,G64] path control mode
 
-// Parses the next statement and leaves the counter on the first character following
-// the statement. Returns 1 if there was a statements, 0 if end of string was reached
-// or there was an error (check state.status_code).
-GCodeInterpreter.prototype.parseWord = function(word)
-{
-  if (!word.length) {
-    throw new Error('Bad word format: ' + word);
-  }
+// Define command actions for within execution-type modal groups (motion, stopping, non-modal). Used
+// internally by the parser to know which command to execute.
+var MOTION_MODE_SEEK = 0, // G0
+    MOTION_MODE_LINEAR = 1, // G1
+    MOTION_MODE_CW_ARC = 2,  // G2
+    MOTION_MODE_CCW_ARC = 3,  // G3
+    MOTION_MODE_CANCEL = 4; // G80
 
-  var letter = word[0].toUpperCase();
-  if((letter < 'A') || (letter > 'Z')) {
-    throw new Error('Unexpected command letter: ' + letter);
-  }
+var PROGRAM_FLOW_RUNNING = 0,
+    PROGRAM_FLOW_PAUSED = 1, // M0, M1
+    PROGRAM_FLOW_COMPLETED = 2; // M2, M30
 
-  var value = parseFloat(word.slice(1));
-  if (isNaN(value)) {
-    throw new Error('Bad number format: ' + value);
-  }
+var NON_MODAL_NONE = 0,
+    NON_MODAL_DWELL = 1, // G4
+    NON_MODAL_SET_COORDINATE_DATA = 2, // G10
+    NON_MODAL_GO_HOME = 3, // G28,G30
+    NON_MODAL_SET_COORDINATE_OFFSET = 4, // G92
+    NON_MODAL_RESET_COORDINATE_OFFSET = 5; //G92.1
 
-  return {
-    'letter': letter,
-    'value': value
-  };
-};
+var STATUS_UNSUPPORTED_STATEMENT = "Unsupported statement.";
 
-GCodeInterpreter.prototype.interpretLine = function(line) {
-  var words = line.split(' '),
-      i = 0,
-      l = words.length,
-      group_number = MODAL_GROUP_NONE;
-  for ( ; i < l; i++) {
-    console.log('parsing word ' + words[i])
-    parsed = this.parseWord(words[i]);
 
-    var int_value = parseInt(parsed.value, 10);
-    switch(parsed.letter) {
+GCodeInterpreter.prototype.interpretGCode = function(code) {
+
+  var group_number = MODAL_GROUP_NONE,
+      int_value,
+      non_modal_action = NON_MODAL_NONE, // Tracks the actions of modal group 0 (non-modal)
+      absolute_override = false, // true(1) = absolute motion for this block only {G53}
+      gc = this.gc;
+
+  code.words.forEach(function(word) {
+
+    int_value = parseInt(word.value, 10);
+    switch(word.letter) {
       case 'G':
         // Set modal group values
         switch(int_value) {
@@ -107,43 +148,104 @@ GCodeInterpreter.prototype.interpretLine = function(line) {
           case 61: case 64: group_number = MODAL_GROUP_13; break;
         }
         // Set 'G' commands
-        // switch(int_value) {
-        //   case 0: gc.motion_mode = MOTION_MODE_SEEK; break;
-        //   case 1: gc.motion_mode = MOTION_MODE_LINEAR; break;
-        //   case 2: gc.motion_mode = MOTION_MODE_CW_ARC; break;
-        //   case 3: gc.motion_mode = MOTION_MODE_CCW_ARC; break;
-        //   case 4: non_modal_action = NON_MODAL_DWELL; break;
-        //   case 10: non_modal_action = NON_MODAL_SET_COORDINATE_DATA; break;
-        //   case 17: select_plane(X_AXIS, Y_AXIS, Z_AXIS); break;
-        //   case 18: select_plane(X_AXIS, Z_AXIS, Y_AXIS); break;
-        //   case 19: select_plane(Y_AXIS, Z_AXIS, X_AXIS); break;
-        //   case 20: gc.inches_mode = true; break;
-        //   case 21: gc.inches_mode = false; break;
-        //   case 28: case 30: non_modal_action = NON_MODAL_GO_HOME; break;
-        //   case 53: absolute_override = true; break;
-        //   case 54: case 55: case 56: case 57: case 58: case 59:
-        //     int_value -= 54; // Compute coordinate system row index (0=G54,1=G55,...)
-        //     if (int_value < N_COORDINATE_SYSTEM) {
-        //       sys.coord_select = int_value;
-        //     } else {
-        //       FAIL(STATUS_UNSUPPORTED_STATEMENT);
-        //     }
-        //     break;
-        //   case 80: gc.motion_mode = MOTION_MODE_CANCEL; break;
-        //   case 90: gc.absolute_mode = true; break;
-        //   case 91: gc.absolute_mode = false; break;
-        //   case 92:
-        //     int_value = trunc(10*value); // Multiply by 10 to pick up G92.1
-        //     switch(int_value) {
-        //       case 920: non_modal_action = NON_MODAL_SET_COORDINATE_OFFSET; break;
-        //       case 921: non_modal_action = NON_MODAL_RESET_COORDINATE_OFFSET; break;
-        //       default: FAIL(STATUS_UNSUPPORTED_STATEMENT);
-        //     }
-        //     break;
-        //   case 93: gc.inverse_feed_rate_mode = true; break;
-        //   case 94: gc.inverse_feed_rate_mode = false; break;
-        //   default: FAIL(STATUS_UNSUPPORTED_STATEMENT);
-        // }
+        switch(int_value) {
+          case 0:
+            gc.motion_mode = MOTION_MODE_SEEK;
+            console.log("MOTION_MODE_SEEK");
+            break;
+          case 1:
+            gc.motion_mode = MOTION_MODE_LINEAR;
+            console.log("MOTION_MODE_LINEAR");
+            break;
+          case 2:
+            gc.motion_mode = MOTION_MODE_CW_ARC;
+            console.log("MOTION_MODE_CW_ARC");
+            break;
+          case 3:
+            gc.motion_mode = MOTION_MODE_CCW_ARC;
+            console.log("MOTION_MODE_CCW_ARC");
+            break;
+          case 4:
+            non_modal_action = NON_MODAL_DWELL;
+            console.log("NON_MODAL_DWELL");
+            break;
+          case 10:
+            non_modal_action = NON_MODAL_SET_COORDINATE_DATA;
+            console.log("NON_MODAL_SET_COORDINATE_DATA");
+            break;
+          case 17:
+            gc.selectPlane(X_AXIS, Y_AXIS, Z_AXIS);
+            console.log("PLANE: XYZ");
+            break;
+          case 18:
+            gc.selectPlane(X_AXIS, Z_AXIS, Y_AXIS);
+            console.log("PLANE: XZY");
+            break;
+          case 19:
+            gc.selectPlane(Y_AXIS, Z_AXIS, X_AXIS);
+            console.log("PLANE: YZX");
+            break;
+          case 20:
+            gc.inches_mode = true;
+            console.log("UNITS: inches");
+            break;
+          case 21:
+            gc.inches_mode = false;
+            console.log("UNITS: millimeters");
+            break;
+          case 28: case 30:
+            non_modal_action = NON_MODAL_GO_HOME;
+            console.log("NON_MODAL_GO_HOME");
+            break;
+          case 53:
+            absolute_override = true;
+            console.log("absolute_override ON");
+            break;
+          case 54: case 55: case 56: case 57: case 58: case 59:
+            int_value -= 54; // Compute coordinate system row index (0=G54,1=G55,...)
+            if (int_value < N_COORDINATE_SYSTEM) {
+              sys.coord_select = int_value;
+            } else {
+              throw new Error(STATUS_UNSUPPORTED_STATEMENT);
+            }
+            console.log("coordinate system selection");
+            break;
+          case 80:
+            gc.motion_mode = MOTION_MODE_CANCEL;
+            console.log("MOTION_MODE_CANCEL");
+            break;
+          case 90:
+            gc.absolute_mode = true;
+            console.log("absolute_mode ON");
+            break;
+          case 91:
+            gc.absolute_mode = false;
+            console.log("absolute_mode OFF");
+            break;
+          case 92:
+            int_value = parseInt(10*word.value); // Multiply by 10 to pick up G92.1
+            switch(int_value) {
+              case 920:
+                non_modal_action = NON_MODAL_SET_COORDINATE_OFFSET;
+                console.log("NON_MODAL_SET_COORDINATE_OFFSET");
+                break;
+              case 921:
+                non_modal_action = NON_MODAL_RESET_COORDINATE_OFFSET;
+                console.log("NON_MODAL_RESET_COORDINATE_OFFSET");
+                break;
+              default: throw new Error(STATUS_UNSUPPORTED_STATEMENT);
+            }
+            break;
+          case 93:
+            gc.inverse_feed_rate_mode = true;
+            console.log("inverse_feed_rate_mode ON");
+            break;
+          case 94:
+            gc.inverse_feed_rate_mode = false;
+            console.log("inverse_feed_rate_mode OFF");
+            break;
+          default: throw new Error(STATUS_UNSUPPORTED_STATEMENT);
+        }
         break;
       case 'M':
         // Set modal group values
@@ -179,14 +281,14 @@ GCodeInterpreter.prototype.interpretLine = function(line) {
       //     case 3: gc.spindle_direction = 1; break;
       //     case 4: gc.spindle_direction = -1; break;
       //     case 5: gc.spindle_direction = 0; break;
-      //     default: FAIL(STATUS_UNSUPPORTED_STATEMENT);
+      //     default: throw new Error(STATUS_UNSUPPORTED_STATEMENT);
       //   }
       //   break;
     }
     // Check for modal group multiple command violations in the current block
     // if (group_number) {
     //   if ( bit_istrue(modal_group_words,bit(group_number)) ) {
-    //     FAIL(STATUS_MODAL_GROUP_VIOLATION);
+    //     throw new Error(STATUS_MODAL_GROUP_VIOLATION);
     //   } else {
     //     bit_true(modal_group_words,bit(group_number));
     //   }
@@ -194,7 +296,7 @@ GCodeInterpreter.prototype.interpretLine = function(line) {
     // }
 
 
-    var message = words[i] + " code: " + parsed.letter + " val: " + parsed.value + " group: ";
+    var message = word + " code: " + word.letter + " val: " + word.value + " group: ";
     switch(group_number) {
       case MODAL_GROUP_NONE: message += "no group"; break;
       case MODAL_GROUP_0:    message += "non modal"; break;
@@ -204,8 +306,8 @@ GCodeInterpreter.prototype.interpretLine = function(line) {
       case MODAL_GROUP_4:    message += "stopping"; break;
       case MODAL_GROUP_5:    message += "feed rate mode"; break;
       case MODAL_GROUP_6:    message += "units"; break;
-      case MODAL_GROUP_7:    message += (parsed.letter == "G" ? "cutter radius compensation" : "spindle turning"); break;
-      case MODAL_GROUP_8:    message += (parsed.letter == "G" ? "tool length offset" : "coolant"); break;
+      case MODAL_GROUP_7:    message += (word.letter == "G" ? "cutter radius compensation" : "spindle turning"); break;
+      case MODAL_GROUP_8:    message += (word.letter == "G" ? "tool length offset" : "coolant"); break;
       case MODAL_GROUP_9:    message += "enable/disable feed and speed override switches"; break;
       case MODAL_GROUP_10:   message += "return mode in canned cycles"; break;
       case MODAL_GROUP_12:   message += "coordinate system selection"; break;
@@ -214,21 +316,23 @@ GCodeInterpreter.prototype.interpretLine = function(line) {
 
     console.log(message);
 
-  }
+  });
 };
 
-GCodeInterpreter.prototype.parse = function(gcode) {
-  var lines = gcode.split('\n'),
-      i = 0,
-      l = lines.length;
-  for ( ; i < l; i++) {
-    this.interpretLine(lines[i])
-  }
-  return this.model;
+GCodeInterpreter.prototype.interpret = function(gcodeModel) {
+
+  var self = this;
+
+  self.model = gcodeModel;
+
+  self.model.codes.forEach(function(code) {
+    self.interpretGCode(code);
+  });
+
 };
 
 var gi = new GCodeInterpreter();
-gi.parse('G1 X79 Y84.9665 Z0.25 F900.0 E5.628');
+// gi.parse('G1 X79 Y84.9665 Z0.25 F900.0 E5.628');
 
 /*
 
@@ -326,9 +430,9 @@ In addition to the above modal groups, there is a group for non-modal G codes:
 //         case 3: gc.motion_mode = MOTION_MODE_CCW_ARC; break;
 //         case 4: non_modal_action = NON_MODAL_DWELL; break;
 //         case 10: non_modal_action = NON_MODAL_SET_COORDINATE_DATA; break;
-//         case 17: select_plane(X_AXIS, Y_AXIS, Z_AXIS); break;
-//         case 18: select_plane(X_AXIS, Z_AXIS, Y_AXIS); break;
-//         case 19: select_plane(Y_AXIS, Z_AXIS, X_AXIS); break;
+//         case 17: gc.selectPlane(X_AXIS, Y_AXIS, Z_AXIS); break;
+//         case 18: gc.selectPlane(X_AXIS, Z_AXIS, Y_AXIS); break;
+//         case 19: gc.selectPlane(Y_AXIS, Z_AXIS, X_AXIS); break;
 //         case 20: gc.inches_mode = true; break;
 //         case 21: gc.inches_mode = false; break;
 //         case 28: case 30: non_modal_action = NON_MODAL_GO_HOME; break;
