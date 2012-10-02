@@ -331,7 +331,7 @@ GCodeInterpreter.prototype.interpret = function(gcodeModel) {
 
 };
 
-var gi = new GCodeInterpreter();
+// var gi = new GCodeInterpreter();
 // gi.parse('G1 X79 Y84.9665 Z0.25 F900.0 E5.628');
 
 /*

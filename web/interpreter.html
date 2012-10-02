@@ -5,11 +5,14 @@
   <!-- 3rd party libs -->
   <script type="text/javascript" src="lib/modernizr.custom.93389.js"></script>
   <script type="text/javascript" src="lib/jquery-1.7.1.min.js"></script>
+  <script src="lib/sugar-1.2.4.min.js"></script>
+  <script src="lib/three.min.js"></script>
   <!-- Custom code -->
   <script type="text/javascript" src="gcode_model.js"></script>
-  <script type="text/javascript" src="gcode_parser2.js"></script>
+  <script type="text/javascript" src="gcode_parser.js"></script>
   <script type="text/javascript" src="gcode_interpreter.js"></script>
   <script type="text/javascript" src="gcode_importer.js"></script>
+  <script type="text/javascript" src="gcode_renderer.js"></script>
 
   <script type="text/javascript">
 
@@ -19,11 +22,16 @@
       defaultFilePath: 'examples/octocat.gcode'
     }
 
+    var gp, gm, gi, gr;
+
     function onGCodeLoaded(gcode) {
-      var gp = new GCodeParser();
-      var gm = gp.parse(gcode);
-      var gi = new GCodeInterpreter();
+      gp = new GCodeParser();
+      gm = gp.parse(gcode);
+      gi = new GCodeInterpreter();
       gi.interpret(gm);
+      gr = new GCodeRenderer();
+      gr.render(gm);
+
 
       // console.log(gm.toString())
 

@@ -153,12 +153,12 @@ function createObjectFromGCode(gcode) {
       };
       /* layer change detection is or made by watching Z, it's made by
          watching when we extrude at a new Z position */
-    if (delta(lastLine.e, newLine.e) > 0) {
-      newLine.extruding = delta(lastLine.e, newLine.e) > 0;
-      if (layer == undefined || newLine.z != layer.z)
-        newLayer(newLine);
-    }
-    addSegment(lastLine, newLine);
+      if (delta(lastLine.e, newLine.e) > 0) {
+        newLine.extruding = delta(lastLine.e, newLine.e) > 0;
+        if (layer == undefined || newLine.z != layer.z)
+          newLayer(newLine);
+      }
+      addSegment(lastLine, newLine);
       lastLine = newLine;
     },
 
@@ -309,19 +309,28 @@ function createObjectFromGCode(gcode) {
   return object;
 }
 
+var gp, gm, gi, gr;
+
 function onGCodeLoaded(gcode) {
+      gp = new GCodeParser();
+      gm = gp.parse(gcode);
+      // gi = new GCodeInterpreter();
+      // gi.interpret(gm);
+      gr = new GCodeRenderer();
+      var gcodeObj = gr.render(gm);
 
-  var gcodeObj = createObjectFromGCode(gcode);
 
-  // var gcodeModel = OldGCodeParser.parse(gcode);
+  // var gcodeObj = createObjectFromGCode(gcode);
 
-  localStorage.removeItem(config.lastImportedKey);
-  try {
-    localStorage.setItem(config.lastImportedKey, gcode);
-  }
-  catch(e) {
-    // localstorage error - probably out of space
-  }
+  // // var gcodeModel = OldGCodeParser.parse(gcode);
+
+  // localStorage.removeItem(config.lastImportedKey);
+  // try {
+  //   localStorage.setItem(config.lastImportedKey, gcode);
+  // }
+  // catch(e) {
+  //   // localstorage error - probably out of space
+  // }
 
   $('#openModal').modal('hide');
   if (object) {

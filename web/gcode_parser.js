@@ -77,12 +77,12 @@ GCodeParser.prototype.parseLine = function(line) {
       continue;
     }
 
-    console.log('parsing word: "' + words[i] + '"');
+    // console.log('parsing word: "' + words[i] + '"');
     pWord = this.parseWord(words[i]);
     pLine.words.push(pWord);
 
-    var message = words[i] + " code: " + pWord.letter + " val: " + pWord.value + " group: ";
-    console.log(message);
+    // var message = words[i] + " code: " + pWord.letter + " val: " + pWord.value + " group: ";
+    // console.log(message);
   }
   return pLine;
 };
@@ -91,26 +91,29 @@ GCodeParser.prototype.parse = function(gcode) {
   var lines = gcode.split('\n'),
       i = 0,
       l = lines.length,
-      self = this;
+      self = this,
+      lineCode,
+      current = new GCode();
   for ( ; i < l; i++) {
-    self.model.codes.push(self.parseLine(lines[i]));
+    // self.model.codes.push(self.parseLine(lines[i]));
 
+    lineCode = self.parseLine(lines[i]);
     // Trying to auto-group words across multiple lines and split single lines
     // This can get complicated so we'll just split by line for now.
-    // words.forEach(function(word) {
-    //   switch(word.letter) {
-    //     // Detect new code group, add current group to model & start a new group
-    //     case 'G': case 'M': case 'T': case 'S':
-    //       if(current.words.length > 0) {
-    //         self.model.codes.push(current);
-    //         current = new GCode();
-    //       }
-    //       break;
-    //   }
-    //   current.words.push(word);
-    // });
+    lineCode.words.forEach(function(word) {
+      switch(word.letter) {
+        // Detect new code group, add current group to model & start a new group
+        case 'G': case 'M':
+          if(current.words.length > 0) {
+            self.model.codes.push(current);
+            current = new GCode();
+          }
+          break;
+      }
+      current.words.push(word);
+    });
   }
-  // self.model.codes.push(current);
+  self.model.codes.push(current);
   return self.model;
 };
 
