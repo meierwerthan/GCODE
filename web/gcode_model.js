@@ -15,6 +15,7 @@ function GCode() {
   this.words = [];
   this.comments = [];
   // this.lineNumbers = [];
+  this.index = 0;
 };
 
 GCode.prototype.toString = function() {

@@ -90,6 +90,7 @@ GCodeParser.prototype.parseLine = function(line) {
 GCodeParser.prototype.parse = function(gcode) {
   var lines = gcode.split('\n'),
       i = 0,
+      n = 0,
       l = lines.length,
       self = this,
       lineCode,
@@ -107,6 +108,7 @@ GCodeParser.prototype.parse = function(gcode) {
           if(current.words.length > 0) {
             self.model.codes.push(current);
             current = new GCode();
+            current.index = ++n;
           }
           break;
       }
