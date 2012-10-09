@@ -63,7 +63,7 @@ GCodeParser.prototype.parseLine = function(line) {
 
   pLine.comments = self.parseComments(line);
   pLine.comments.forEach( function(comment) {
-    console.log("Removing comment: " +  comment);
+    // console.log("Removing comment: " +  comment);
     line = line.replace(comment, '');
   });
 
@@ -73,7 +73,7 @@ GCodeParser.prototype.parseLine = function(line) {
   for ( ; i < l; i++) {
 
     if(!words[i] || words[i].length <= 0) {
-      console.log('skipping blank word');
+      // console.log('skipping blank word');
       continue;
     }
 
@@ -100,7 +100,6 @@ GCodeParser.prototype.parse = function(gcode) {
 
     lineCode = self.parseLine(lines[i]);
     // Trying to auto-group words across multiple lines and split single lines
-    // This can get complicated so we'll just split by line for now.
     lineCode.words.forEach(function(word) {
       switch(word.letter) {
         // Detect new code group, add current group to model & start a new group
