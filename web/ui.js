@@ -278,10 +278,10 @@ function onGCodeLoaded(gcode) {
 
 $(function() {
 
-  if (!Modernizr.webgl) {
-    alert("Sorry, you need a WebGL capable browser to use this.\n\nGet the latest Chrome or FireFox.");
-    return;
-  }
+  // if (!Modernizr.webgl) {
+  //   alert("Sorry, you need a WebGL capable browser to use this.\n\nGet the latest Chrome or FireFox.");
+  //   return;
+  // }
 
   if (!Modernizr.localstorage) {
     alert("This app uses local storage to save settings, but your browser doesn't support it.\n\nGet the latest Chrome or FireFox.");
