@@ -103,25 +103,9 @@ function GCodeRenderer() {
   this.materialHandlers = {
 
     G0: function(code) {
-      // var material = new THREE.LineBasicMaterial({
-      //       color: new THREE.Color( GCodeRenderer.feedColors[code.index%GCodeRenderer.feedColors.length] ),
-      //       opacity: 0.0,
-      //       transparent: true,
-      //       linewidth: 3,
-      //       vertexColors: THREE.NoColors });
-      // return material;
-      // return GCodeRenderer.materials[code.index%GCodeRenderer.materials.length];
       return this.motionMat;
     },
     G1: function(code) {
-      // var material = new THREE.LineBasicMaterial({
-      //       color: new THREE.Color( GCodeRenderer.feedColors[code.index%GCodeRenderer.feedColors.length] ),
-      //       opacity: 1.0,
-      //       transparent: true,
-      //       linewidth: 3,
-      //       vertexColors: THREE.NoColors });
-      // return material;
-      // return GCodeRenderer.materials[code.index%GCodeRenderer.materials.length];
       return this.feedMat;
     },
     G2: function(code) {
@@ -151,22 +135,6 @@ GCodeRenderer.feedColors = [ 0xffcc66, // canteloupe
                              // 0x66ff66, // flora
                            ]
 
-// GCodeRenderer.materials = (function() {
-//     var materials = [];
-//     GCodeRenderer.feedColors.forEach(function(color){
-//       var material = new THREE.LineBasicMaterial({
-//             color: color,
-//             opacity: 1.0,
-//             transparent: true,
-//             linewidth: 3 });
-//             // linewidth: 3,
-//             // vertexColors: THREE.NoColors });
-//             // vertexColors: THREE.VertexColors });
-//       materials.push(material);
-//     });
-//     return materials;
-//   })();
-
 GCodeRenderer.prototype.render = function(model) {
   var self = this;
   self.model = model;
@@ -175,64 +143,15 @@ GCodeRenderer.prototype.render = function(model) {
 
 
   var parentObject = new THREE.Object3D();
-  // var parentObject = new THREE.Object3D(),
-      // lineObject;
 
   self.model.codes.forEach(function(code) {
     self.renderGCode(code);
-    // lineObject = self.renderGCode(code);
-    // if(lineObject) {
-      // parentObject.add(lineObject);
-    // }
   });
-
-
-  // rendered.forEach(function(viewModel) {
-  //   // if(materials[code.index]) {
-  //     // var lineObject = new THREE.Line(viewModel.geometry, viewModel.material, THREE.LinePieces);
-  //     var lineObject = new THREE.Line(viewModel.geometry, undefined, THREE.LinePieces);
-  //     // var lineObject = new THREE.Line(geometry, materials[code.index], THREE.LinePieces);
-  //     // var lineObject = new THREE.Line(geometry, materials[code.index], THREE.LineStrip);
-  //     parentObject.add(lineObject);
-  //   // }
-  // });
 
   var motionLine = new THREE.Line(this.motionGeo, this.motionMat, THREE.LinePieces);
   var feedLine = new THREE.Line(this.feedGeo, this.feedMat, THREE.LinePieces);
-  // var motionLine = new THREE.Line(this.motionGeo, undefined, THREE.LinePieces);
-  // var feedLine = new THREE.Line(this.feedGeo, undefined, THREE.LinePieces);
   parentObject.add(motionLine);
   parentObject.add(feedLine);
-
-
-  // parentObject.add(new THREE.Line(geometry, undefined, THREE.LinePieces));
-
-  // var i, line, material, p,
-  //   parameters = [
-  //                  [ 0.25, 0xff7700,    1, 2 ],
-  //                  [  0.5, 0xff9900,    1, 1 ],
-  //                  [ 0.75, 0xffaa00, 0.75, 1 ],
-  //                  [    1, 0xffaa00,  0.5, 1 ],
-  //                  [ 1.25, 0x000833,  0.8, 1 ],
-  //                  // [  3.0, 0xaaaaaa, 0.75, 2 ],
-  //                  // [  3.5, 0xffffff,  0.5, 1 ],
-  //                  // [  4.5, 0xffffff, 0.25, 1 ],
-  //                  // [ 5.5, 0xffffff, 0.125, 1 ]
-  //                ];
-
-  // for( i = 0; i < parameters.length; ++ i ) {
-
-  //   p = parameters[ i ];
-
-  //   material = new THREE.LineBasicMaterial( { color: p[ 1 ], opacity: p[ 2 ], linewidth: p[ 3 ] } );
-
-  //   line = new THREE.Line( geometry, material, THREE.LinePieces );
-  //   line.scale.x = line.scale.y = line.scale.z = p[ 0 ];
-  //   line.originalScale = p[ 0 ];
-  //   line.rotation.y = Math.random() * Math.PI;
-  //   line.updateMatrix();
-  //   parentObject.add( line );
-  // }
 
   // Center
   var scale = 3; // TODO: Auto size
@@ -270,15 +189,6 @@ GCodeRenderer.prototype.renderGCode = function(code) {
   if(viewModel.geometry && viewModel.material) {
     rendered.push(viewModel);
   }
-
-  // if(geometry && material) {
-  //   // return new THREE.Line(geometry, material, THREE.LinePieces);
-  //   // return new THREE.Line(geo, material, THREE.LineStrip);
-  //   return new THREE.Line(geometry);
-  // }
-  // else {
-  //   console.log("no geometry or material created, can't render for code: " + code);
-  // }
 
 };
 
