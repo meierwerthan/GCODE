@@ -1,8 +1,31 @@
-
+function GCodeViewModel(code, geometry, material) {
+  this.code = code;
+  this.geometry = geometry;
+  this.material = material;
+}
 
 function GCodeRenderer() {
 
   var self = this;
+
+  this.motionGeo = new THREE.Geometry();
+  this.feedGeo = new THREE.Geometry();
+  this.motionMat = new THREE.LineBasicMaterial({
+        // color: 0xff0000,
+        opacity: 0.5,
+        transparent: true,
+        linewidth: 3,
+        // vertexColors: THREE.NoColors }),
+        vertexColors: THREE.VertexColors });
+  this.feedMat = new THREE.LineBasicMaterial({
+        // color: 0x0000ff,
+        opacity: 1.0,
+        transparent: true,
+        linewidth: 3,
+        // vertexColors: THREE.NoColors });
+        vertexColors: THREE.VertexColors });
+
+
 
   this.lastLine = {x:0, y:0, z:0, e:0, f:0};
   this.relative = false;
@@ -14,7 +37,7 @@ function GCodeRenderer() {
     max: { x:-100000, y:-100000, z:-100000 }
   };
 
-  this.handlers = {
+  this.geometryHandlers = {
 
     G0: function(code) {
       // console.log("in g0 renderer handler " + code)
@@ -37,13 +60,17 @@ function GCodeRenderer() {
         }
       });
 
-      /* layer change detection is or made by watching Z, it's made by
-         watching when we extrude at a new Z position */
-      var geometry = new THREE.Geometry();
-      self.addSegment(self.lastLine, newLine, geometry);
+      // var geometry = new THREE.Geometry();
+      var color =  new THREE.Color(0x0000ff);
+      self.motionGeo.vertices.push(new THREE.Vector3(self.lastLine.x, self.lastLine.y, self.lastLine.z));
+      self.motionGeo.vertices.push(new THREE.Vector3(newLine.x, newLine.y, newLine.z));
+
+      self.motionGeo.colors.push(color);
+      self.motionGeo.colors.push(color);
+
       self.lastLine = newLine;
 
-      return geometry;
+      return self.motionGeo;
     },
     G1: function(code) {
       // console.log("in g1 renderer handler " + code)
@@ -66,60 +93,50 @@ function GCodeRenderer() {
         }
       });
 
-      /* layer change detection is or made by watching Z, it's made by
-         watching when we extrude at a new Z position */
-      var geometry = new THREE.Geometry();
-      self.addSegment(self.lastLine, newLine, geometry);
+      var color =  new THREE.Color(0xff0000);
+      self.feedGeo.vertices.push(new THREE.Vector3(self.lastLine.x, self.lastLine.y, self.lastLine.z));
+      self.feedGeo.vertices.push(new THREE.Vector3(newLine.x, newLine.y, newLine.z));
+      self.feedGeo.colors.push(color);
+      self.feedGeo.colors.push(color);
+
       self.lastLine = newLine;
 
-      return geometry;
+      return self.feedGeo;
     },
     G2: function(code) {
-
-      var points = [];
-
-      for ( i = 0; i < points.length; i ++ ) {
-
-        geometry.vertices.push( points[ i ] );
-
-        colors[ i ] = new THREE.Color( 0xffffff );
-        colors[ i ].setHSV( 0.6, ( 200 + points[ i ].x ) / 400, 1.0 );
-      }
-
-
-
-
-      // console.log("in g2 renderer handler " + code)
-
-      var newLine = {};
-
-      code.words.forEach(function(word) {
-        // TODO: handle non-numerical values
-        switch(word.letter) {
-          case 'X': case 'Y': case 'Z':  case 'E':  case 'F':
-            var p = word.letter.toLowerCase();
-            newLine[p] = self.absolute(self.lastLine[p], parseFloat(word.value));
-            break;
-        }
-      });
-
-      ['x','y','z','e','f'].forEach(function(prop) {
-        if (newLine[prop] === undefined) {
-          newLine[prop] = self.lastLine[prop];
-        }
-      });
-
-      /* layer change detection is or made by watching Z, it's made by
-         watching when we extrude at a new Z position */
-      var geometry = new THREE.Geometry();
-      self.addSegment(self.lastLine, newLine, geometry);
-      self.lastLine = newLine;
-
-      return geometry;
     }
 
+  } // end geometryHandlers
 
-  }
+  this.materialHandlers = {
+
+    G0: function(code) {
+      // var material = new THREE.LineBasicMaterial({
+      //       color: new THREE.Color( GCodeRenderer.colors[code.index%GCodeRenderer.colors.length] ),
+      //       opacity: 0.0,
+      //       transparent: true,
+      //       linewidth: 3,
+      //       vertexColors: THREE.NoColors });
+      // return material;
+      // return GCodeRenderer.materials[code.index%GCodeRenderer.materials.length];
+      return this.motionMat;
+    },
+    G1: function(code) {
+      // var material = new THREE.LineBasicMaterial({
+      //       color: new THREE.Color( GCodeRenderer.colors[code.index%GCodeRenderer.colors.length] ),
+      //       opacity: 1.0,
+      //       transparent: true,
+      //       linewidth: 3,
+      //       vertexColors: THREE.NoColors });
+      // return material;
+      // return GCodeRenderer.materials[code.index%GCodeRenderer.materials.length];
+      return this.feedMat;
+    },
+    G2: function(code) {
+      return this.feedMat;
+    }
+
+  } // end materialHandlers
 
 };
 
@@ -127,47 +144,103 @@ GCodeRenderer.prototype.absolute = function(v1, v2) {
     return this.relative ? v1 + v2 : v2;
   }
 
-GCodeRenderer.prototype.addSegment = function(p1, p2, geometry) {
-  // var geometry = new THREE.Geometry(),
-  // var color =  new THREE.Color(0x0000ff);
-  var color =  new THREE.Color(0xffffff);
 
-  geometry.vertices.push(new THREE.Vector3(p1.x, p1.y, p1.z));
-  geometry.vertices.push(new THREE.Vector3(p2.x, p2.y, p2.z));
-  geometry.colors.push(color);
-  geometry.colors.push(color);
 
-  this.bounds.min.x = Math.min(this.bounds.min.x, p2.x);
-  this.bounds.min.y = Math.min(this.bounds.min.y, p2.y);
-  this.bounds.min.z = Math.min(this.bounds.min.z, p2.z);
-  this.bounds.max.x = Math.max(this.bounds.max.x, p2.x);
-  this.bounds.max.y = Math.max(this.bounds.max.y, p2.y);
-  this.bounds.max.z = Math.max(this.bounds.max.z, p2.z);
-}
+// GCodeRenderer.colors = [ 0xffffff, 0xff0000, 0x00ff00, 0x0000ff ]
 
+GCodeRenderer.colors = [ 0xffcc66, // canteloupe
+                         0x66ccff, // sky
+                         0xccff66, // honeydew
+                         0xff70cf, // carnation
+                         0xfffe66, // banana
+                         0xff6666, // salmon
+                         0xcc66ff // lavender
+                         // 0x66ffcc, // spindrift
+                         // 0x66ff66, // flora
+                       ]
+
+// GCodeRenderer.materials = (function() {
+//     var materials = [];
+//     GCodeRenderer.colors.forEach(function(color){
+//       var material = new THREE.LineBasicMaterial({
+//             color: color,
+//             opacity: 1.0,
+//             transparent: true,
+//             linewidth: 3 });
+//             // linewidth: 3,
+//             // vertexColors: THREE.NoColors });
+//             // vertexColors: THREE.VertexColors });
+//       materials.push(material);
+//     });
+//     return materials;
+//   })();
 
 GCodeRenderer.prototype.render = function(model) {
   var self = this;
-
   self.model = model;
 
+  geometry = new THREE.Geometry();
 
-  var object = new THREE.Object3D();
-  var geometry, // = new THREE.Geometry(),
-      material = new THREE.LineBasicMaterial({
-            opacity: 0.5,
-            transparent: true,
-            linewidth: 1,
-            vertexColors: THREE.FaceColors });
 
+  var parentObject = new THREE.Object3D();
+  // var parentObject = new THREE.Object3D(),
+      // lineObject;
 
   self.model.codes.forEach(function(code) {
-    geometry = self.renderGCode(code);
-    if(geometry) {
-      // console.log("ADDING LINE", geometry)
-      object.add(new THREE.Line(geometry, material, THREE.LinePieces));
-    }
+    self.renderGCode(code);
+    // lineObject = self.renderGCode(code);
+    // if(lineObject) {
+      // parentObject.add(lineObject);
+    // }
   });
+
+
+  // rendered.forEach(function(viewModel) {
+  //   // if(materials[code.index]) {
+  //     // var lineObject = new THREE.Line(viewModel.geometry, viewModel.material, THREE.LinePieces);
+  //     var lineObject = new THREE.Line(viewModel.geometry, undefined, THREE.LinePieces);
+  //     // var lineObject = new THREE.Line(geometry, materials[code.index], THREE.LinePieces);
+  //     // var lineObject = new THREE.Line(geometry, materials[code.index], THREE.LineStrip);
+  //     parentObject.add(lineObject);
+  //   // }
+  // });
+
+  var motionLine = new THREE.Line(this.motionGeo, this.motionMat, THREE.LinePieces);
+  var feedLine = new THREE.Line(this.feedGeo, this.feedMat, THREE.LinePieces);
+  // var motionLine = new THREE.Line(this.motionGeo, undefined, THREE.LinePieces);
+  // var feedLine = new THREE.Line(this.feedGeo, undefined, THREE.LinePieces);
+  parentObject.add(motionLine);
+  parentObject.add(feedLine);
+
+
+  // parentObject.add(new THREE.Line(geometry, undefined, THREE.LinePieces));
+
+  // var i, line, material, p,
+  //   parameters = [
+  //                  [ 0.25, 0xff7700,    1, 2 ],
+  //                  [  0.5, 0xff9900,    1, 1 ],
+  //                  [ 0.75, 0xffaa00, 0.75, 1 ],
+  //                  [    1, 0xffaa00,  0.5, 1 ],
+  //                  [ 1.25, 0x000833,  0.8, 1 ],
+  //                  // [  3.0, 0xaaaaaa, 0.75, 2 ],
+  //                  // [  3.5, 0xffffff,  0.5, 1 ],
+  //                  // [  4.5, 0xffffff, 0.25, 1 ],
+  //                  // [ 5.5, 0xffffff, 0.125, 1 ]
+  //                ];
+
+  // for( i = 0; i < parameters.length; ++ i ) {
+
+  //   p = parameters[ i ];
+
+  //   material = new THREE.LineBasicMaterial( { color: p[ 1 ], opacity: p[ 2 ], linewidth: p[ 3 ] } );
+
+  //   line = new THREE.Line( geometry, material, THREE.LinePieces );
+  //   line.scale.x = line.scale.y = line.scale.z = p[ 0 ];
+  //   line.originalScale = p[ 0 ];
+  //   line.rotation.y = Math.random() * Math.PI;
+  //   line.updateMatrix();
+  //   parentObject.add( line );
+  // }
 
   // Center
   var scale = 3; // TODO: Auto size
@@ -177,23 +250,44 @@ GCodeRenderer.prototype.render = function(model) {
       this.bounds.min.y + ((this.bounds.max.y - this.bounds.min.y) / 2),
       this.bounds.min.z + ((this.bounds.max.z - this.bounds.min.z) / 2));
 
-  object.position = center.multiplyScalar(-scale);
+  parentObject.position = center.multiplyScalar(-scale);
 
-  object.scale.multiplyScalar(scale);
+  parentObject.scale.multiplyScalar(scale);
   console.log("bbox ", this.bounds);
   console.log("center ", center);
-  console.log("object ", object);
+  console.log("parentObject ", parentObject);
 
-  return object;
+  return parentObject;
 };
 
-GCodeRenderer.prototype.renderGCode = function(code) {
-  var cmd = code.words[0].letter+code.words[0].value;
+var rendered = [];
 
-  var handler = this.handlers[cmd] || this.handlers['default'];
-  if (handler) {
-    return handler(code);
+/* returns THREE.Object3D */
+GCodeRenderer.prototype.renderGCode = function(code) {
+  var cmd = code.words[0].letter+code.words[0].value,
+      viewModel = new GCodeViewModel();
+
+  var geometryHandler = this.geometryHandlers[cmd] || this.geometryHandlers['default'];
+  if (geometryHandler) {
+    viewModel.geometry = geometryHandler(code);
   }
+  var materialHandler = this.materialHandlers[cmd] || this.materialHandlers['default'];
+  if (materialHandler) {
+    viewModel.material = materialHandler(code);
+  }
+  if(viewModel.geometry && viewModel.material) {
+    rendered.push(viewModel);
+  }
+
+  // if(geometry && material) {
+  //   // return new THREE.Line(geometry, material, THREE.LinePieces);
+  //   // return new THREE.Line(geo, material, THREE.LineStrip);
+  //   return new THREE.Line(geometry);
+  // }
+  // else {
+  //   console.log("no geometry or material created, can't render for code: " + code);
+  // }
+
 };
 
 
