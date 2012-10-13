@@ -11,25 +11,18 @@ function GCodeRenderer() {
   this.motionGeo = new THREE.Geometry();
   this.feedGeo = new THREE.Geometry();
   this.motionMat = new THREE.LineBasicMaterial({
-        // color: 0xff0000,
         opacity: 0.5,
         transparent: true,
         linewidth: 3,
-        // vertexColors: THREE.NoColors }),
         vertexColors: THREE.VertexColors });
   this.feedMat = new THREE.LineBasicMaterial({
-        // color: 0x0000ff,
         opacity: 1.0,
         transparent: true,
         linewidth: 3,
-        // vertexColors: THREE.NoColors });
         vertexColors: THREE.VertexColors });
-
-
 
   this.lastLine = {x:0, y:0, z:0, e:0, f:0};
   this.relative = false;
-
 
   // this.renderer = renderer;
   this.bounds = {
@@ -60,8 +53,7 @@ function GCodeRenderer() {
         }
       });
 
-      // var geometry = new THREE.Geometry();
-      var color =  new THREE.Color(0x0000ff);
+      var color =  new THREE.Color(GCodeRenderer.motionColors[code.index%GCodeRenderer.motionColors.length]);
       self.motionGeo.vertices.push(new THREE.Vector3(self.lastLine.x, self.lastLine.y, self.lastLine.z));
       self.motionGeo.vertices.push(new THREE.Vector3(newLine.x, newLine.y, newLine.z));
 
@@ -93,7 +85,7 @@ function GCodeRenderer() {
         }
       });
 
-      var color =  new THREE.Color(0xff0000);
+      var color =  new THREE.Color(GCodeRenderer.feedColors[code.index%GCodeRenderer.feedColors.length]);
       self.feedGeo.vertices.push(new THREE.Vector3(self.lastLine.x, self.lastLine.y, self.lastLine.z));
       self.feedGeo.vertices.push(new THREE.Vector3(newLine.x, newLine.y, newLine.z));
       self.feedGeo.colors.push(color);
@@ -112,7 +104,7 @@ function GCodeRenderer() {
 
     G0: function(code) {
       // var material = new THREE.LineBasicMaterial({
-      //       color: new THREE.Color( GCodeRenderer.colors[code.index%GCodeRenderer.colors.length] ),
+      //       color: new THREE.Color( GCodeRenderer.feedColors[code.index%GCodeRenderer.feedColors.length] ),
       //       opacity: 0.0,
       //       transparent: true,
       //       linewidth: 3,
@@ -123,7 +115,7 @@ function GCodeRenderer() {
     },
     G1: function(code) {
       // var material = new THREE.LineBasicMaterial({
-      //       color: new THREE.Color( GCodeRenderer.colors[code.index%GCodeRenderer.colors.length] ),
+      //       color: new THREE.Color( GCodeRenderer.feedColors[code.index%GCodeRenderer.feedColors.length] ),
       //       opacity: 1.0,
       //       transparent: true,
       //       linewidth: 3,
@@ -146,22 +138,22 @@ GCodeRenderer.prototype.absolute = function(v1, v2) {
 
 
 
-// GCodeRenderer.colors = [ 0xffffff, 0xff0000, 0x00ff00, 0x0000ff ]
+GCodeRenderer.motionColors = [ 0xdddddd ]
 
-GCodeRenderer.colors = [ 0xffcc66, // canteloupe
-                         0x66ccff, // sky
-                         0xccff66, // honeydew
-                         0xff70cf, // carnation
-                         0xfffe66, // banana
-                         0xff6666, // salmon
-                         0xcc66ff // lavender
-                         // 0x66ffcc, // spindrift
-                         // 0x66ff66, // flora
-                       ]
+GCodeRenderer.feedColors = [ 0xffcc66, // canteloupe
+                             0x66ccff, // sky
+                             0xccff66, // honeydew
+                             0xff70cf, // carnation
+                             0xfffe66, // banana
+                             0xff6666, // salmon
+                             0xcc66ff // lavender
+                             // 0x66ffcc, // spindrift
+                             // 0x66ff66, // flora
+                           ]
 
 // GCodeRenderer.materials = (function() {
 //     var materials = [];
-//     GCodeRenderer.colors.forEach(function(color){
+//     GCodeRenderer.feedColors.forEach(function(color){
 //       var material = new THREE.LineBasicMaterial({
 //             color: color,
 //             opacity: 1.0,
