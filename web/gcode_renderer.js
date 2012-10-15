@@ -9,39 +9,35 @@ function GCodeRenderer() {
   var self = this;
 
   this.viewModels = [];
-  this.index = 100;
+  this.index = 0;
   this.baseObject = new THREE.Object3D();
 
   this.motionGeo = new THREE.Geometry();
-  this.motionGeo.dynamic = true;
   this.motionMat = new THREE.LineBasicMaterial({
-        opacity: 0.5,
+        opacity: 0.2,
         transparent: true,
-        linewidth: 2,
+        linewidth: 1,
         vertexColors: THREE.VertexColors });
 
   this.motionIncGeo = new THREE.Geometry();
-  this.motionIncGeo.dynamic = true;
   this.motionIncMat = new THREE.LineBasicMaterial({
-        opacity: 0.5,
+        opacity: 0.2,
         transparent: true,
-        linewidth: 2,
+        linewidth: 1,
         vertexColors: THREE.VertexColors });
 
   this.feedAllGeo = new THREE.Geometry();
 
   this.feedGeo = new THREE.Geometry();
-  this.feedGeo.dynamic = true;
   this.feedMat = new THREE.LineBasicMaterial({
-        opacity: 1.0,
+        opacity: 0.8,
         transparent: true,
         linewidth: 2,
         vertexColors: THREE.VertexColors });
 
   this.feedIncGeo = new THREE.Geometry();
-  this.feedIncGeo.dynamic = true;
   this.feedIncMat = new THREE.LineBasicMaterial({
-        opacity: 0.5,
+        opacity: 0.2,
         transparent: true,
         linewidth: 2,
         vertexColors: THREE.VertexColors });
@@ -135,8 +131,6 @@ function GCodeRenderer() {
         self.feedIncGeo.vertices.push(p2);
       }
 
-
-
       self.feedAllGeo.vertices.push(p1);
       self.feedAllGeo.vertices.push(p2);
       self.feedAllGeo.colors.push(color);
@@ -170,13 +164,14 @@ function GCodeRenderer() {
 };
 
 GCodeRenderer.motionColors = [ new THREE.Color(0xdddddd) ]
-GCodeRenderer.feedColors = [ new THREE.Color(0xffcc66), // canteloupe
+GCodeRenderer.feedColors = [
+                             // new THREE.Color(0xffcc66), // canteloupe
                              new THREE.Color(0x66ccff), // sky
-                             new THREE.Color(0xccff66), // honeydew
-                             new THREE.Color(0xff70cf), // carnation
+                             new THREE.Color(0x22bb22), // honeydew
+                             // new THREE.Color(0xff70cf), // carnation
+                             new THREE.Color(0xcc66ff), // lavender
                              new THREE.Color(0xfffe66), // banana
-                             new THREE.Color(0xff6666), // salmon
-                             new THREE.Color(0xcc66ff) // lavender
+                             new THREE.Color(0xff6666) // salmon
                              // new THREE.Color(0x66ffcc), // spindrift
                              // new THREE.Color(0x66ff66), // flora
                            ]
@@ -247,56 +242,16 @@ GCodeRenderer.prototype.setIndex = function(index) {
     throw new Error("invalid index");
   }
 
-  if( index > this.index ) {
+  var vm = this.viewModels[index];
 
-    var vm1 = this.viewModels[this.index],
-        vm2 = this.viewModels[index];
+  this.feedGeo = new THREE.Geometry();
 
-    this.feedGeo = new THREE.Geometry();
+  var vertices = this.feedAllGeo.vertices.slice(0, vm.vertexIndex + vm.vertexLength);
+  Array.prototype.push.apply( this.feedGeo.vertices, vertices );
 
-    // var vertices = this.feedAllGeo.vertices.slice(vm1.vertexIndex + vm1.vertexLength,
-    //                                               vm2.vertexIndex + vm2.vertexLength);
-    var vertices = this.feedAllGeo.vertices.slice(0, vm2.vertexIndex + vm2.vertexLength);
-    Array.prototype.push.apply( this.feedGeo.vertices, vertices );
+  var colors = this.feedAllGeo.colors.slice(0, vm.vertexIndex + vm.vertexLength);
+  Array.prototype.push.apply( this.feedGeo.colors, colors );
 
-    // var colors = this.feedAllGeo.colors.slice(vm1.vertexIndex + vm1.vertexLength,
-    //                                           vm2.vertexIndex + vm2.vertexLength);
-    var colors = this.feedAllGeo.colors.slice(0, vm2.vertexIndex + vm2.vertexLength);
-    Array.prototype.push.apply( this.feedGeo.colors, colors );
-
-
-    // var vertices = this.feedAllGeo.vertices.slice(0, vm2.vertexIndex + vm2.vertexLength);
-    // this.feedGeo.vertices.push( vertices );
-    // Array.prototype.push.apply( this.feedGeo.vertices, vertices );
-
-    // for ( var i = 0; i < vertices.length; i ++ ) {
-    //   this.feedGeo.vertices.push( vertices[ i ] );
-    // }
-
-
-    // add geometry from all to complete
-    // remove geometry from inc
-
-    this.feedGeo.verticesNeedUpdate = true;
-    this.feedGeo.colorsNeedUpdate = true;
-    // this.feedGeo.elementsNeedUpdate = true;
-    // this.feedGeo.uvsNeedUpdate = true;
-    // this.feedGeo.normalsNeedUpdate = true;
-    // this.feedGeo.colorsNeedUpdate = true;
-    // this.feedGeo.tangentsNeedUpdate = true;
-
-  }
-  else {
-    // remove geometry from complete
-    // add geometry from all to inc
-  }
-
-  // var motionLine = new THREE.Line(this.motionGeo, this.motionMat, THREE.LinePieces);
-  // var feedLine = new THREE.Line(this.feedGeo, this.feedMat, THREE.LinePieces);
-  // var feedIncLine = new THREE.Line(this.feedIncGeo, this.feedIncMat, THREE.LinePieces);
-  // // this.baseObject.add(motionLine);
-  // this.baseObject.add(feedLine);
-  // this.baseObject.add(feedIncLine);
 
   this.index = index;
   this.updateLines();

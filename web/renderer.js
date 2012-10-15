@@ -82,7 +82,7 @@ function createScene(container) {
       windowHalfY = window.innerHeight / 2,
 
       useSplines = false,
-      autoRotate = true,
+      autoRotate = false,
 
       camera, controls, renderer, materialmaterial2, materials = [], composer;
 
@@ -234,6 +234,7 @@ function createScene(container) {
 
       }
 
+      var direction = 1;
       function render() {
 
         var time = Date.now() * 0.0005;
@@ -249,6 +250,19 @@ function createScene(container) {
           }
         }
 
+        if(true) {
+          if(gr) {
+            try {
+              gr.setIndex(gr.index + direction);
+            }
+            catch(e) {
+              direction = -direction;
+            }
+          }
+        }
+
+        // if(effectController && gr)
+        //   gr.setIndex(effectController.gcodeIndex);
         // geometry.verticesNeedUpdate = true;
         // geometry2.verticesNeedUpdate = true;
 
