@@ -66,7 +66,12 @@ function onGCodeLoaded(gcode) {
       // gi = new GCodeInterpreter();
       // gi.interpret(gm);
       gr = new GCodeRenderer();
+
       var gcodeObj = gr.render(gm);
+      guiControllers.gcodeIndex.max(gr.viewModels.length - 1);
+      guiControllers.gcodeIndex.setValue(0);
+      guiControllers.animate.setValue(true);
+
 
 
   // var gcodeObj = createObjectFromGCode(gcode);
@@ -143,80 +148,114 @@ $(function() {
     GCodeImporter.importPath(config.defaultFilePath, onGCodeLoaded);
   }
 
-    setupGui();
+  setupGui();
 });
 
 
+var guiControllers = {
+  gcodeIndex: undefined,
+  animate: undefined
+}
 function setupGui() {
 
-    var createHandler = function( id ) {
+  var gui = new dat.GUI();
 
-    };
+  $('.dg.main').mousedown(function(event) {
+    event.stopPropagation();
+  });
 
-    function toggle( e ) {
+  effectController = {
 
-      if ( e.style.display === "block" ) {
+    gcodeIndex:   10,
+    animate: false,
+    speed: 0,
+    color: [ 0, 128, 255 ],
 
-        e.style.display = "none";
-
-      } else {
-
-        e.style.display = "block";
-
-      }
-
+    h_s:  function() {
+      for (var i = 0; i < g_s.length; i++)  toggle(g_s[ i ].domElement);
     }
 
-    effectController = {
+  };
 
-      gcodeIndex:   10,
-
-      h_s:  function() {
-        for (var i = 0; i < g_s.length; i++)  toggle(g_s[ i ].domElement);
-      },
-      dummy: function() {
-      }
-
-    };
-
-    var e1, h,
-    g_m = [], g_c, g_pc, g_do, g_s, g_r, mm,
-    gui = new DAT.GUI();
-
-    h = gui.add(effectController, "h_s").name("Properties");
-    e1 = gui.add(effectController, "gcodeIndex", 1, 50000, 1);
-
-    g_s = [ e1 ];
-
-    setGuiHeaderStyle(h, 200, 65, 50);
-    setGuiElementStyle(g_s, 200, 65, 50, "block");
-
-    gui.domElement.style.backgroundColor = "#222";
-
-  }
+  guiControllers.gcodeIndex = gui.add(effectController, "gcodeIndex", 0, 1000, 1000).listen();
+  guiControllers.animate = gui.add(effectController, 'animate').listen();
+  // gui.add(effectController, 'speed', { Slow: 1, Normal: 2, Fast: 5 }, "Normal" );
+  // gui.addColor(effectController, 'color');
 
 
-  function setGuiHeaderStyle( g, h, s, v ) {
-
-    var color = "hsl(" + h + "," + s + "%, " + v + "%)";
-
-    g.domElement.style.borderLeft = "solid 5px " + color;
-    g.domElement.style.background = color;
-    g.domElement.style.fontWeight = "bold";
-
-  }
-
-  function setGuiElementStyle( a, h, s, v, display ) {
-
-    var s, color = "hsl(" + h + "," + s + "%, " + v + "%)";
-
-    for ( i = 0; i < a.length; i ++ ) {
-
-      s = a[ i ].domElement.style;
-      s.borderLeft = "solid 5px " + color;
-      s.display = display ? display : "none";
-
+  guiControllers.gcodeIndex.onChange(function(value) {
+    if(effectController.animate) {
+      guiControllers.animate.setValue(false);
     }
+  });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  //   function toggle( e ) {
+
+  //     if ( e.style.display === "block" ) {
+
+  //       e.style.display = "none";
+
+  //     } else {
+
+  //       e.style.display = "block";
+
+  //     }
+
+  //   }
+
+
+  //   var e1, e2, h,
+  //   g_m = [], g_c, g_pc, g_do, g_s, g_r, mm,
+  //   gui = new DAT.GUI();
+
+  //   h = gui.add(effectController, "h_s").name("Properties");
+  //   e1 = gui.add(effectController, "gcodeIndex", 1, 50000, 1);
+  //   e2 = gui.add(effectController, "animate");
+
+  //   g_s = [ e1, e2 ];
+
+  //   setGuiHeaderStyle(h, 200, 65, 50);
+  //   setGuiElementStyle(g_s, 200, 65, 50, "block");
+
+  //   gui.domElement.style.backgroundColor = "#222";
+
+  // }
+
+
+  // function setGuiHeaderStyle( g, h, s, v ) {
+
+  //   var color = "hsl(" + h + "," + s + "%, " + v + "%)";
+
+  //   g.domElement.style.borderLeft = "solid 5px " + color;
+  //   g.domElement.style.background = color;
+  //   g.domElement.style.fontWeight = "bold";
+
+  // }
+
+  // function setGuiElementStyle( a, h, s, v, display ) {
+
+  //   var s, color = "hsl(" + h + "," + s + "%, " + v + "%)";
+
+  //   for ( i = 0; i < a.length; i ++ ) {
+
+  //     s = a[ i ].domElement.style;
+  //     s.borderLeft = "solid 5px " + color;
+  //     s.display = display ? display : "none";
+
+  //   }
 
   }
 

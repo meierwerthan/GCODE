@@ -234,7 +234,6 @@ function createScene(container) {
 
       }
 
-      var direction = 1;
       function render() {
 
         var time = Date.now() * 0.0005;
@@ -250,27 +249,20 @@ function createScene(container) {
           }
         }
 
-        if(true) {
-          if(gr) {
-            try {
-              gr.setIndex(gr.index + direction);
+        if( effectController && gr ) {
+          if( effectController.animate ) {
+             try {
+              gr.setIndex(gr.index + 1);
+              effectController.gcodeIndex = gr.index;
             }
             catch(e) {
-              direction = -direction;
+              effectController.animate = false;
             }
           }
+          else {
+            gr.setIndex(effectController.gcodeIndex);
+          }
         }
-
-        // if(effectController && gr)
-        //   gr.setIndex(effectController.gcodeIndex);
-        // geometry.verticesNeedUpdate = true;
-        // geometry2.verticesNeedUpdate = true;
-
-        // var l = materials.length;
-        // for( i = 0; i < l; i++ ) {
-        //  h = ( 360 * ( i / l + time ) % 360 ) / 360;
-        //  materials[ i ].color.setHSV( h, 0.5 + 0.5 * ( i % 20 / 20 ), 1 );
-        // }
 
         controls.update();
 

@@ -238,7 +238,7 @@ GCodeRenderer.prototype.renderGCode = function(code) {
 
 
 GCodeRenderer.prototype.setIndex = function(index) {
-
+  index = Math.floor(index);
   if( this.index == index ) { return; }
   if( index < 0 || index >= this.viewModels.length ) {
     throw new Error("invalid index");
