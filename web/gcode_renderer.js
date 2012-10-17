@@ -231,7 +231,9 @@ GCodeRenderer.prototype.renderGCode = function(code) {
     materialHandler(viewModel);
   }
 
-  this.viewModels.push(viewModel);
+  if(viewModel.vertexLength > 0) {
+    this.viewModels.push(viewModel);
+  }
 };
 
 
