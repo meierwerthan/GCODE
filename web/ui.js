@@ -47,7 +47,8 @@ var config = {
 
 var scene = null,
     object = null,
-    effectController;
+    effectController,
+    stats;
 
 function about() {
   $('#aboutModal').modal();
@@ -72,6 +73,11 @@ function onGCodeLoaded(gcode) {
       guiControllers.gcodeIndex.setValue(0);
       guiControllers.animate.setValue(true);
 
+
+
+      camera.position.z = 500;
+      camera.position.y = -1500;
+      camera.lookAt( gr.center );
 
 
   // var gcodeObj = createObjectFromGCode(gcode);
@@ -155,7 +161,7 @@ $(function() {
 var guiControllers = {
   gcodeIndex: undefined,
   animate: undefined
-}
+};
 function setupGui() {
 
   var gui = new dat.GUI();
@@ -171,10 +177,6 @@ function setupGui() {
     speed: 0,
     color: [ 0, 128, 255 ],
 
-    h_s:  function() {
-      for (var i = 0; i < g_s.length; i++)  toggle(g_s[ i ].domElement);
-    }
-
   };
 
   guiControllers.gcodeIndex = gui.add(effectController, "gcodeIndex", 0, 1000, 1000).listen();
@@ -188,74 +190,5 @@ function setupGui() {
       guiControllers.animate.setValue(false);
     }
   });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  //   function toggle( e ) {
-
-  //     if ( e.style.display === "block" ) {
-
-  //       e.style.display = "none";
-
-  //     } else {
-
-  //       e.style.display = "block";
-
-  //     }
-
-  //   }
-
-
-  //   var e1, e2, h,
-  //   g_m = [], g_c, g_pc, g_do, g_s, g_r, mm,
-  //   gui = new DAT.GUI();
-
-  //   h = gui.add(effectController, "h_s").name("Properties");
-  //   e1 = gui.add(effectController, "gcodeIndex", 1, 50000, 1);
-  //   e2 = gui.add(effectController, "animate");
-
-  //   g_s = [ e1, e2 ];
-
-  //   setGuiHeaderStyle(h, 200, 65, 50);
-  //   setGuiElementStyle(g_s, 200, 65, 50, "block");
-
-  //   gui.domElement.style.backgroundColor = "#222";
-
-  // }
-
-
-  // function setGuiHeaderStyle( g, h, s, v ) {
-
-  //   var color = "hsl(" + h + "," + s + "%, " + v + "%)";
-
-  //   g.domElement.style.borderLeft = "solid 5px " + color;
-  //   g.domElement.style.background = color;
-  //   g.domElement.style.fontWeight = "bold";
-
-  // }
-
-  // function setGuiElementStyle( a, h, s, v, display ) {
-
-  //   var s, color = "hsl(" + h + "," + s + "%, " + v + "%)";
-
-  //   for ( i = 0; i < a.length; i ++ ) {
-
-  //     s = a[ i ].domElement.style;
-  //     s.borderLeft = "solid 5px " + color;
-  //     s.display = display ? display : "none";
-
-  //   }
-
-  }
+};
 

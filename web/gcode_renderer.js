@@ -191,15 +191,24 @@ GCodeRenderer.prototype.render = function(model) {
   self.updateLines();
 
   // Center
-  var scale = 3; // TODO: Auto size
-  var center = new THREE.Vector3(
-      this.bounds.min.x + ((this.bounds.max.x - this.bounds.min.x) / 2),
-      this.bounds.min.y + ((this.bounds.max.y - this.bounds.min.y) / 2),
-      this.bounds.min.z + ((this.bounds.max.z - this.bounds.min.z) / 2));
-  this.baseObject.position = center.multiplyScalar(-scale);
-  this.baseObject.scale.multiplyScalar(scale);
+  self.feedAllGeo.computeBoundingBox();
+  self.bounds = self.feedAllGeo.boundingBox;
 
-  return this.baseObject;
+  self.center = new THREE.Vector3(
+      self.bounds.min.x + ((self.bounds.max.x - self.bounds.min.x) / 2),
+      self.bounds.min.y + ((self.bounds.max.y - self.bounds.min.y) / 2),
+      self.bounds.min.z + ((self.bounds.max.z - self.bounds.min.z) / 2));
+
+  var zScale = window.innerHeight / (self.bounds.max.z - self.bounds.min.z),
+      yScale = window.innerWidth / (self.bounds.max.y - self.bounds.min.y),
+      xScale = window.innerWidth / (self.bounds.max.x - self.bounds.min.x),
+
+      scale = Math.min(zScale, Math.min(xScale, yScale));
+
+  self.baseObject.position = self.center.multiplyScalar(-scale);
+  self.baseObject.scale.multiplyScalar(scale);
+
+  return self.baseObject;
 };
 
 GCodeRenderer.prototype.updateLines = function() {
