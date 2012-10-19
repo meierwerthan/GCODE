@@ -18,7 +18,10 @@ GCodeParser.prototype.parseComments = function(line) {
     }
   }
 
-  // Parenthesis style comments
+  // Full line parenthesis style comments
+  addComments(line.match(/\((.*)\)$/g, ''));
+
+  // Inline parenthesis style comments
   addComments(line.match(/\((.*?)\)/g, ''));
 
   // Semicolon style comments
