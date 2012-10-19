@@ -43,7 +43,7 @@ GCodeParser.prototype.parseWord = function(word)
       value;
 
   if((letter < 'A') || (letter > 'Z')) {
-    throw new Error('Unexpected command letter: ' + letter);
+    throw new Error('Unexpected command letter: ' + letter + ' from word: ' + word);
   }
 
   value = word.slice(1);
@@ -81,8 +81,13 @@ GCodeParser.prototype.parseLine = function(line) {
     }
 
     // console.log('parsing word: "' + words[i] + '"');
-    pWord = this.parseWord(words[i]);
-    pLine.words.push(pWord);
+    try {
+      pWord = this.parseWord(words[i]);
+      pLine.words.push(pWord);
+    }
+    catch(e) {
+      console.log(e.message);
+    }
 
     // var message = words[i] + " code: " + pWord.letter + " val: " + pWord.value + " group: ";
     // console.log(message);
