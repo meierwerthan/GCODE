@@ -112,7 +112,7 @@ function GCodeRenderer() {
       });
 
       // var color =  new THREE.Color(GCodeRenderer.feedColors[viewModel.code.index%GCodeRenderer.feedColors.length]);
-      var color =  GCodeRenderer.feedColors[viewModel.code.index%GCodeRenderer.feedColors.length];
+      var color =  GCodeRenderer.feedColors[1];
       var p1 = new THREE.Vector3(self.lastLine.x, self.lastLine.y, self.lastLine.z);
       var p2 = new THREE.Vector3(newLine.x, newLine.y, newLine.z);
 
